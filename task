@@ -1,0 +1,261 @@
+import mysql.connector
+from abc import ABC, abstractmethod
+from functools import reduce
+from datetime import datetime
+
+# ---------------- DB CONNECTION ----------------
+conn = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="271998",
+    database="expense_manager"
+)
+
+cursor = conn.cursor()
+
+# ---------------- ABSTRACT CLASS ----------------
+class BaseSystem(ABC):
+
+    @abstractmethod
+    def show_menu(self):
+        pass
+
+# ---------------- USER CLASS ----------------
+class User(BaseSystem):
+
+    def __init__(self):
+        self.__name = None   # encapsulation
+
+    def create_user(self):
+        self.__name = input("Enter user name: ")
+
+        query = "INSERT INTO users (name) VALUES (%s)"
+        cursor.execute(query, (self.__name,))
+        conn.commit()
+
+        print(" User created successfully")
+
+    def get_user_id(self):
+        name = input("Enter user name: ")
+        query = "SELECT user_id FROM users WHERE name=%s"
+        cursor.execute(query, (name,))
+        result = cursor.fetchone()
+
+        if result:
+            return result[0]
+        else:
+            print(" User not found")
+            return None
+
+    def show_menu(self):
+        print("User Menu")
+
+# ---------------- EXPENSE CLASS (INHERITANCE) ----------------
+class Expense(User):
+
+    def __init__(self):
+        super().__init__()
+
+    # METHOD OVERRIDING
+    def show_menu(self):
+        print("\n===== EXPENSE MANAGER =====")
+        print("1. Add User")
+        print("2. Add Expense")
+        print("3. View Expenses")
+        print("4. Filter Expenses")
+        print("5. Total Expense")
+        print("6. Category-wise Spending")
+        print("7. Update Expense")
+        print("8. Delete Expense")
+        print("9. Monthly Report")
+        print("10. Highest Expense")
+        print("11. Smart Insight")
+        print("0. Exit")
+
+    # ---------------- ADD EXPENSE ----------------
+    def add_expense(self):
+        user_id = self.get_user_id()
+        if not user_id:
+            return
+
+        amount = float(input("Amount: "))
+        category = input("Category: ")
+        desc = input("Description: ")
+        date = input("Date (YYYY-MM-DD): ")
+
+        query = """
+        INSERT INTO expenses (user_id, amount, category, description, date)
+        VALUES (%s, %s, %s, %s, %s)
+        """
+
+        cursor.execute(query, (user_id, amount, category, desc, date))
+        conn.commit()
+
+        print(" Expense added")
+
+    # ---------------- VIEW EXPENSES (JOIN) ----------------
+    def view_expenses(self):
+        user_id = self.get_user_id()
+        if not user_id:
+            return
+
+        query = """
+        SELECT u.name, e.amount, e.category, e.description, e.date
+        FROM users u
+        JOIN expenses e ON u.user_id = e.user_id
+        WHERE u.user_id = %s
+        """
+
+        cursor.execute(query, (user_id,))
+        for row in cursor.fetchall():
+            print(row)
+
+    # ---------------- FILTER ----------------
+    def filter_expenses(self):
+        user_id = self.get_user_id()
+        if not user_id:
+            return
+
+        cursor.execute("SELECT * FROM expenses WHERE user_id=%s", (user_id,))
+        data = cursor.fetchall()
+
+        choice = input("Filter by (category/date): ")
+
+        if choice == "category":
+            cat = input("Enter category: ")
+            result = list(filter(lambda x: x[3] == cat, data))
+
+        elif choice == "date":
+            d = input("Enter date (YYYY-MM-DD): ")
+            result = [x for x in data if str(x[5]) == d]
+
+        else:
+            print("Invalid filter")
+            return
+
+        for r in result:
+            print(r)
+
+    # ---------------- TOTAL ----------------
+    def total_expense(self):
+        user_id = self.get_user_id()
+        if not user_id:
+            return
+
+        cursor.execute("SELECT amount FROM expenses WHERE user_id=%s", (user_id,))
+        amounts = list(map(lambda x: x[0], cursor.fetchall()))
+
+        total = reduce(lambda a, b: a + b, amounts, 0)
+        print(" Total Expense:", total)
+
+    # ---------------- CATEGORY WISE ----------------
+    def category_wise(self):
+        user_id = self.get_user_id()
+        if not user_id:
+            return
+
+        cursor.execute("SELECT category, amount FROM expenses WHERE user_id=%s", (user_id,))
+        data = cursor.fetchall()
+
+        result = {}
+        for cat, amt in data:
+            result[cat] = result.get(cat, 0) + amt
+
+        result = {k: v for k, v in result.items()}  # dict comprehension
+
+        for k, v in result.items():
+            print(f"{k}: {v}")
+
+    # ---------------- UPDATE ----------------
+    def update_expense(self):
+        exp_id = int(input("Enter Expense ID: "))
+        amount = float(input("New Amount: "))
+
+        cursor.execute("UPDATE expenses SET amount=%s WHERE exp_id=%s", (amount, exp_id))
+        conn.commit()
+
+        print(" Updated")
+
+    # ---------------- DELETE ----------------
+    def delete_expense(self):
+        exp_id = int(input("Enter Expense ID: "))
+
+        cursor.execute("DELETE FROM expenses WHERE exp_id=%s", (exp_id,))
+        conn.commit()
+
+        print(" Deleted")
+
+    # ---------------- MONTHLY REPORT ----------------
+    def monthly_report(self):
+        cursor.execute("SELECT amount, date FROM expenses")
+        data = cursor.fetchall()
+
+        report = {}
+
+        for amt, date in data:
+            month = date.strftime("%Y-%m")
+            report[month] = report.get(month, 0) + amt
+
+        print(" Monthly Report:")
+        for m, total in report.items():
+            print(m, ":", total)
+
+    # ---------------- HIGHEST EXPENSE ----------------
+    def highest_expense(self):
+        cursor.execute("SELECT amount FROM expenses")
+        data = list(map(lambda x: x[0], cursor.fetchall()))
+
+        if not data:
+            print("No data")
+            return
+
+        highest = reduce(lambda a, b: a if a > b else b, data)
+        print(" Highest Expense:", highest)
+
+    # ---------------- SMART INSIGHT ----------------
+    def smart_insight(self):
+        cursor.execute("SELECT category, amount FROM expenses")
+        data = cursor.fetchall()
+
+        result = {}
+        for cat, amt in data:
+            result[cat] = result.get(cat, 0) + amt
+
+        max_cat = max(result, key=result.get)
+
+        print(f" You are spending too much on {max_cat}")
+
+# ---------------- MAIN ----------------
+obj = Expense()
+
+while True:
+    obj.show_menu()
+    choice = input("Enter choice: ")
+
+    if choice == "1":
+        obj.create_user()
+    elif choice == "2":
+        obj.add_expense()
+    elif choice == "3":
+        obj.view_expenses()
+    elif choice == "4":
+        obj.filter_expenses()
+    elif choice == "5":
+        obj.total_expense()
+    elif choice == "6":
+        obj.category_wise()
+    elif choice == "7":
+        obj.update_expense()
+    elif choice == "8":
+        obj.delete_expense()
+    elif choice == "9":
+        obj.monthly_report()
+    elif choice == "10":
+        obj.highest_expense()
+    elif choice == "11":
+        obj.smart_insight()
+    elif choice == "0":
+        print(" Exiting...")
+        break
+    else:
+        print("Invalid choice")
