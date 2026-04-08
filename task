@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from functools import reduce
 from datetime import datetime
 
-# ---------------- DB CONNECTION ----------------
+# DB CONNECTION 
 conn = mysql.connector.connect(
     host="localhost",
     user="root",
@@ -13,14 +13,14 @@ conn = mysql.connector.connect(
 
 cursor = conn.cursor()
 
-# ---------------- ABSTRACT CLASS ----------------
+# ABSTRACT CLASS 
 class BaseSystem(ABC):
 
     @abstractmethod
     def show_menu(self):
         pass
 
-# ---------------- USER CLASS ----------------
+#  USER CLASS
 class User(BaseSystem):
 
     def __init__(self):
@@ -50,7 +50,7 @@ class User(BaseSystem):
     def show_menu(self):
         print("User Menu")
 
-# ---------------- EXPENSE CLASS (INHERITANCE) ----------------
+#  EXPENSE CLASS (INHERITANCE) 
 class Expense(User):
 
     def __init__(self):
@@ -58,7 +58,7 @@ class Expense(User):
 
     # METHOD OVERRIDING
     def show_menu(self):
-        print("\n===== EXPENSE MANAGER =====")
+        print("\n EXPENSE MANAGER ")
         print("1. Add User")
         print("2. Add Expense")
         print("3. View Expenses")
@@ -72,7 +72,7 @@ class Expense(User):
         print("11. Smart Insight")
         print("0. Exit")
 
-    # ---------------- ADD EXPENSE ----------------
+    #  ADD EXPENSE
     def add_expense(self):
         user_id = self.get_user_id()
         if not user_id:
@@ -93,7 +93,7 @@ class Expense(User):
 
         print(" Expense added")
 
-    # ---------------- VIEW EXPENSES (JOIN) ----------------
+    #  VIEW EXPENSES (JOIN) 
     def view_expenses(self):
         user_id = self.get_user_id()
         if not user_id:
@@ -110,7 +110,7 @@ class Expense(User):
         for row in cursor.fetchall():
             print(row)
 
-    # ---------------- FILTER ----------------
+    #  FILTER
     def filter_expenses(self):
         user_id = self.get_user_id()
         if not user_id:
@@ -136,7 +136,7 @@ class Expense(User):
         for r in result:
             print(r)
 
-    # ---------------- TOTAL ----------------
+    #  TOTAL 
     def total_expense(self):
         user_id = self.get_user_id()
         if not user_id:
@@ -148,7 +148,7 @@ class Expense(User):
         total = reduce(lambda a, b: a + b, amounts, 0)
         print(" Total Expense:", total)
 
-    # ---------------- CATEGORY WISE ----------------
+    #  CATEGORY WISE
     def category_wise(self):
         user_id = self.get_user_id()
         if not user_id:
@@ -166,7 +166,7 @@ class Expense(User):
         for k, v in result.items():
             print(f"{k}: {v}")
 
-    # ---------------- UPDATE ----------------
+    #  UPDATE
     def update_expense(self):
         exp_id = int(input("Enter Expense ID: "))
         amount = float(input("New Amount: "))
@@ -176,7 +176,7 @@ class Expense(User):
 
         print(" Updated")
 
-    # ---------------- DELETE ----------------
+    #  DELETE 
     def delete_expense(self):
         exp_id = int(input("Enter Expense ID: "))
 
@@ -185,7 +185,7 @@ class Expense(User):
 
         print(" Deleted")
 
-    # ---------------- MONTHLY REPORT ----------------
+    #  MONTHLY REPORT 
     def monthly_report(self):
         cursor.execute("SELECT amount, date FROM expenses")
         data = cursor.fetchall()
@@ -200,7 +200,7 @@ class Expense(User):
         for m, total in report.items():
             print(m, ":", total)
 
-    # ---------------- HIGHEST EXPENSE ----------------
+    # HIGHEST EXPENSE
     def highest_expense(self):
         cursor.execute("SELECT amount FROM expenses")
         data = list(map(lambda x: x[0], cursor.fetchall()))
@@ -212,7 +212,7 @@ class Expense(User):
         highest = reduce(lambda a, b: a if a > b else b, data)
         print(" Highest Expense:", highest)
 
-    # ---------------- SMART INSIGHT ----------------
+    # SMART INSIGHT 
     def smart_insight(self):
         cursor.execute("SELECT category, amount FROM expenses")
         data = cursor.fetchall()
@@ -225,7 +225,7 @@ class Expense(User):
 
         print(f" You are spending too much on {max_cat}")
 
-# ---------------- MAIN ----------------
+# MAIN 
 obj = Expense()
 
 while True:
